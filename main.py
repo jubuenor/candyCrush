@@ -10,6 +10,8 @@ import utils
 import solver
 import mouse
 
+import pyautogui as pg
+
 
 board_box = (102, 102, 742, 672)
 img_size = (board_box[2]-board_box[0], board_box[3]-board_box[1])
@@ -20,16 +22,8 @@ game_board = np.zeros((board_size, board_size), dtype=np.int32)
 recognizer = ImgRecognizer()
 
 
-def click(x, y):
-    mouse.move(x, y)
-    mouse.click('left')
-    # win32api.SetCursorPos((x, y))
-    # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)
-    # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)
-
-
 def get_coords(cell):
-    x = board_box[0] + cell[0]*cell_size[0] + cell_size[0]/2
+    x = board_box[0] + cell[1] * cell_size[0] + cell_size[0]/2
     y = board_box[1] + cell[0] * cell_size[1] + cell_size[1]/2
     return x, y
 
@@ -41,37 +35,42 @@ def move(move):
 
     start_w = get_coords(start)
     end_w = get_coords(end)
-    mouse.move(start_w)
-    mouse.click('left')
+
+    print(start_w, end_w)
+
+    print(game_board[start[0]][start[1]], game_board[end[0]][end[1]])
+
+    pg.moveTo(start_w[0], start_w[1])
+    pg.click()
+    time.sleep(0.3)
+    pg.moveTo(end_w[0], end_w[1])
+    pg.click()
     time.sleep(0.3)
 
-    mouse.move(end_w)
-    time.sleep(0.3)
-    mouse.click('left')
+    pg.moveTo(1100, 1100)
 
-    mouse.move((1100, 1100))
-
-    # win32api.SetCursorPos(start_w)
-    # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,start_w[0], start_w[1], 0, 0)
+    # mouse.move(start_w[0], start_w[1])
+    # mouse.click(button='left')
     # time.sleep(0.3)
-    # win32api.SetCursorPos(end_w)
-    # time.sleep(0.3)
-    # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end_w[0], end_w[1], 0, 0)
 
-    # win32api.SetCursorPos((1100, 1100))
+    # mouse.move(end_w[0], end_w[1])
+    # time.sleep(0.3)
+    # mouse.click()
+
+    # mouse.move(1100, 1100)
 
 
 def grab_board():
     global game_board
     img = ImageGrab.grab(bbox=board_box)
-    img.show()
+    # img.show()
     for y in range(0, 9):
         for x in range(0, 9):
             cell = img.crop(
                 (x*cell_size[0], y*cell_size[1], (x+1)*cell_size[0], (y+1)*cell_size[1]))
-            game_board[y][x] = recognizer.predict(cell)
+            game_board[y][x] = recognizer.predict(cell).item()
 
-    utils.print_board(game_board)
+    # utils.print_board(game_board)
     return img
 
 
@@ -120,19 +119,21 @@ def main():
     img_end = img_end.resize(
         (img_end.size[0]//4, img_end.size[1]//4), Image.NEAREST)
     moves = 0
-    grab_board()
+    # grab_board()
 
-    # while True:
-    #    if not board_is_moving():
-    #        board_img = grab_board()
-    # board_img = board_img.resize((board_img.size[0]//4, board_img.size[1]//4), Image.NEAREST)
-    # if compare(board_img, img_end, threshold=100) < 3000:
-    #    break
-    # moves += 1
-    # score, nmove = game_solver.solve_board(game_board)
-    # print('Move found. Score {0}, move = {1}'.format(score, move))
-    # move(nmove)
-    #    time.sleep(0.4)
+    while True:
+        if not board_is_moving():
+
+            board_img = grab_board()
+            board_img = board_img.resize(
+                (board_img.size[0]//4, board_img.size[1]//4), Image.NEAREST)
+            if compare(board_img, img_end, threshold=100) < 3000:
+                break
+            moves += 1
+            score, nmove = game_solver.solve_board(game_board)
+            print('Move found. Score {0}, move = {1}'.format(score, nmove))
+            move(nmove)
+            time.sleep(0.4)
 
     print('Game finished in {0} moves'.format(moves))
 
