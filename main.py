@@ -3,12 +3,10 @@ from PIL import Image
 from PIL import ImageGrab
 import numpy as np
 from decoder import ImgRecognizer
-# import win32api
-# import win32con
 import time
 import utils
 import solver
-import mouse
+import subprocess
 
 import pyautogui as pg
 
@@ -22,6 +20,11 @@ game_board = np.zeros((board_size, board_size), dtype=np.int32)
 recognizer = ImgRecognizer()
 
 
+def open_game():
+    subprocess.Popen(
+        "cd ~ && cd Downloads/ruffle-nightly-2023_08_26-linux-x86_64/ && ./ruffle", shell=True)
+
+
 def get_coords(cell):
     x = board_box[0] + cell[1] * cell_size[0] + cell_size[0]/2
     y = board_box[1] + cell[0] * cell_size[1] + cell_size[1]/2
@@ -29,35 +32,25 @@ def get_coords(cell):
 
 
 def move(move):
-    print('Moving {0}'.format(move))
+    # print('Moving {0}'.format(move))
     start = move[0]
     end = move[1]
 
     start_w = get_coords(start)
     end_w = get_coords(end)
 
-    print(start_w, end_w)
+    # print(start_w, end_w)
 
-    print(game_board[start[0]][start[1]], game_board[end[0]][end[1]])
+    # print(game_board[start[0]][start[1]], game_board[end[0]][end[1]])
 
     pg.moveTo(start_w[0], start_w[1])
+    time.sleep(0.05)
     pg.click()
-    # time.sleep(0.3)
+    time.sleep(0.1)
     pg.moveTo(end_w[0], end_w[1])
+    time.sleep(0.05)
     pg.click()
-    # time.sleep(0.3)
-
     pg.moveTo(1100, 1100)
-
-    # mouse.move(start_w[0], start_w[1])
-    # mouse.click(button='left')
-    # time.sleep(0.3)
-
-    # mouse.move(end_w[0], end_w[1])
-    # time.sleep(0.3)
-    # mouse.click()
-
-    # mouse.move(1100, 1100)
 
 
 def grab_board():
@@ -81,7 +74,7 @@ def board_is_moving():
     global ref_img
     img = ImageGrab.grab()
     img = img.crop(board_box)
-    img = img.resize((img.size[0]//4, img.size[1]//4), Image.NEAREST)
+    img = img.resize((img.size[0]//4, img.size[1]//4), Image.BILINEAR)
 
     has_movement = True
     if ref_img:
@@ -89,6 +82,30 @@ def board_is_moving():
 
     ref_img = img
     return has_movement
+
+
+def next_lvl():
+    board_img = grab_board()
+    board_img = board_img.resize(
+        (board_img.size[0]//4, board_img.size[1]//4), Image.BILINEAR)
+
+    img_next_lvl = Image.open('Images/background.bmp')
+    img_next_lvl = img_next_lvl.resize(
+        (img_next_lvl.size[0]//4, img_next_lvl.size[1]//4), Image.BILINEAR)
+    if compare(board_img, img_next_lvl, threshold=100) < 3000:
+        return True
+    return False
+
+
+def game_over(board_img):
+
+    img_end = Image.open('Images/end_screen.bmp')
+    img_end = img_end.resize(
+        (img_end.size[0]//4, img_end.size[1]//4), Image.BILINEAR)
+    if compare(board_img, img_end, threshold=100) < 3000:
+        return True
+
+    return False
 
 
 def are_pixels_equal(p1, p2, threshold):
@@ -108,36 +125,36 @@ def compare(current, reference, threshold):
         if not are_pixels_equal(current_data[i], ref_data[i], threshold):
             diff_pixels += 1
 
-    print(diff_pixels)
+    # print(diff_pixels)
     return diff_pixels
 
 
 def main():
     recognizer.train()
     game_solver = solver.Solver()
-    img_end = Image.open('Images/end_screen.bmp')
-    img_end = img_end.resize(
-        (img_end.size[0]//4, img_end.size[1]//4), Image.NEAREST)
     moves = 0
     # grab_board()
+    open_game()
+    ready = input('Ready? (y/n)')
+    if ready == 'y':
+        while True:
+            if not board_is_moving() and not next_lvl():
+                print('Board is not moving')
+                board_img = grab_board()
+                board_img = board_img.resize(
+                    (board_img.size[0]//4, board_img.size[1]//4), Image.BILINEAR)
+                if game_over(board_img):
+                    print('Game over')
+                    break
+                moves += 1
+                score, nmove = game_solver.solve_board(game_board)
+                print('Move found. Score {0}, move = {1}'.format(score, nmove))
+                move(nmove)
+                time.sleep(0.3)
+            else:
+                print('Board is moving')
 
-    while True:
-        if not board_is_moving():
-
-            board_img = grab_board()
-            board_img = board_img.resize(
-                (board_img.size[0]//4, board_img.size[1]//4), Image.NEAREST)
-            if compare(board_img, img_end, threshold=100) < 3000:
-                break
-            moves += 1
-            score, nmove = game_solver.solve_board(game_board)
-            print('Move found. Score {0}, move = {1}'.format(score, nmove))
-            move(nmove)
-            # time.sleep(0.4)
-        else:
-            time.sleep(0.2)
-
-    print('Game finished in {0} moves'.format(moves))
+        print('Game finished in {0} moves'.format(moves))
 
 
 if __name__ == '__main__':

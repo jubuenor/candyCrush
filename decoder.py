@@ -10,8 +10,8 @@ class ImgRecognizer:
     def __init__(self):
         self.train_data = []
         self.target_value = []
-        self.svc = svm.SVC(gamma=0.001, kernel='linear', C=100)
-        self.downscale_res = (32, 32)
+        self.svc = svm.SVC(gamma="scale", kernel='rbf', C=1.0)
+        self.downscale_res = (48, 48)
 
     def _load(self, path, target):
         train_imgs = os.listdir(path)

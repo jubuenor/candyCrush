@@ -6,7 +6,8 @@ board_dict = {0: 'blue          ', 1: 's_h_blue      ', 2: 'green         ', 3: 
 
 
 def print_board(board):
-    for line in board:
-        for elem in line:
-            print(board_dict[elem], end=' ')
-        print('\n')
+    print(board_dict[board[0][3]], board_dict[board[0][4]])
+    # for line in board[0]:
+    # 1for elem in line:
+    # 1print(board_dict[elem], end=' ')
+    # 1print('\n')
