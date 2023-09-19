@@ -42,10 +42,10 @@ def move(move):
 
     pg.moveTo(start_w[0], start_w[1])
     pg.click()
-    time.sleep(0.3)
+    # time.sleep(0.3)
     pg.moveTo(end_w[0], end_w[1])
     pg.click()
-    time.sleep(0.3)
+    # time.sleep(0.3)
 
     pg.moveTo(1100, 1100)
 
@@ -70,7 +70,7 @@ def grab_board():
                 (x*cell_size[0], y*cell_size[1], (x+1)*cell_size[0], (y+1)*cell_size[1]))
             game_board[y][x] = recognizer.predict(cell).item()
 
-    # utils.print_board(game_board)
+    utils.print_board(game_board)
     return img
 
 
@@ -133,7 +133,9 @@ def main():
             score, nmove = game_solver.solve_board(game_board)
             print('Move found. Score {0}, move = {1}'.format(score, nmove))
             move(nmove)
-            time.sleep(0.4)
+            # time.sleep(0.4)
+        else:
+            time.sleep(0.2)
 
     print('Game finished in {0} moves'.format(moves))
 
