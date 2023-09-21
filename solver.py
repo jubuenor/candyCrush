@@ -5,22 +5,24 @@ from copy import deepcopy
 class Solver:
     def __init__(self):
         self.board_size = 9
-        self.match_list = [(0, 1, 13, 19), (2, 3, 14, 20), (4, 5, 15, 21),
-                           (6, 7, 18, 22), (8, 9, 16, 23), (10, 11, 17, 24)]
+        # c(n,s_h,s_v,w)    blue, green, orange, purple, red, yellow
+        self.match_list = [(1, 2, 3, 4), (5, 6, 7, 8), (9, 10, 11, 12),
+                           (13, 14, 15, 16), (17, 18, 19, 20), (21, 22, 23, 24)]
 
-        self.special_candies = [1, 3, 5, 7, 9, 11, 12,
-                                13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
-        self.simple_candies = [0, 2, 4, 6, 8, 10]
-        self.striped_candies_h = [1, 3, 5, 7, 9, 11]
-        self.striped_candies_v = range(13, 19)
+        self.special_candies = [2, 3, 4, 6, 7, 8, 10,
+                                11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25]
+        self.simple_candies = [1, 5, 9, 13, 17, 21]
+        self.striped_candies_h = [2, 6, 10, 16, 18, 22]
+        self.striped_candies_v = [3, 7, 11, 14, 15, 19, 23]
 
         self.striped_candies = self.striped_candies_h[:]
         self.striped_candies.extend(self.striped_candies_v)
 
-        self.wrapped_candies = range(19, 25)
-        self.chocolate = [12]
+        self.wrapped_candies = [4, 8, 12, 20, 24]
+        self.chocolate = 25
         self.game_board = None
         self.potential_start_coords = set()
+        self.directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # horizontal
 
     def get_score(self, candy_type):
         if candy_type in self.simple_candies:
@@ -76,19 +78,16 @@ class Solver:
         return False
 
     def compute_explosions_lines(self, board, start):
-        directions = [[(-1, 0), (1, 0)],  # vertical
-                      [(0, -1), (0, 1)]]  # horizontal
+
         to_explode = []
-        for dirs in directions:
+        for dirs in self.directions:
             open_list = [start]
-            for d in dirs:
-                i = start[0] + d[0]
-                j = start[1] + d[1]
-                while 0 <= i < self.board_size and 0 <= j < self.board_size and board[i][j] != -1 \
-                        and self.candy_matches(board[i][j], board[start[0]][start[1]]):
-                    open_list.append((i, j))
-                    i += d[0]
-                    j += d[1]
+            i = start[0] + dirs[0]
+            j = start[1] + dirs[1]
+            while 0 <= i < self.board_size and 0 <= j < self.board_size and board[i][j] != -1 and self.candy_matches(board[i][j], board[start[0]][start[1]]):
+                open_list.append((i, j))
+                i += dirs[0]
+                j += dirs[1]
 
             if len(open_list) >= 3:
                 for element in open_list:
@@ -109,7 +108,7 @@ class Solver:
             score = 500000
             to_explode = [start, end]
         else:
-            if board[start[0]][start[1]] == 12:  # chocolate
+            if board[start[0]][start[1]] == self.chocolate:  # chocolate
                 to_explode = self.compute_explosions_chocolate(
                     board, board[end[0]][end[1]])
                 chocolate_multiplier = 100
@@ -121,7 +120,7 @@ class Solver:
                 board, to_explode) * chocolate_multiplier
 
         # striped candy
-        if len(to_explode) == 4 and board[start[0]][start[1]] != 12:
+        if len(to_explode) == 4 and board[start[0]][start[1]] != self.chocolate:
             board[start[0]][start[1]] += 1
             to_explode.remove(start)
 
@@ -197,8 +196,7 @@ class Solver:
         chosen_move = []
         for i in range(0, 8):
             for j in range(0, 8):
-                possible_directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-                for d in possible_directions:
+                for d in self.directions:
                     score, move, b = self.check_direction((i, j), d)
                     if score >= max_score:
                         max_score = score
