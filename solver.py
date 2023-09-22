@@ -216,8 +216,8 @@ class Solver:
                             possible_moves.append([score, move])
                             max_score = score
                             chosen_move = move
-        print("possible_moves:")
-        for move in possible_moves:
-            print(move[0], move[1])
-            print("\n")
+        # print("possible_moves:")
+        # for move in possible_moves:
+        #    print(move[0], move[1])
+        #    print("\n")
         return max_score, chosen_move
