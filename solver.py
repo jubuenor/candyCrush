@@ -1,5 +1,6 @@
 import utils
 from copy import deepcopy
+import numpy as np
 
 
 class Solver:
@@ -79,17 +80,24 @@ class Solver:
 
     def compute_explosions_lines(self, board, start):
 
+        directions = [[(-1, 0), (1, 0)],  # vertical
+                      [(0, -1), (0, 1)]]  # horizontal
         to_explode = []
-        for dirs in self.directions:
+        for dirs in directions:
             open_list = [start]
-            i = start[0] + dirs[0]
-            j = start[1] + dirs[1]
-            while 0 <= i < self.board_size and 0 <= j < self.board_size and board[i][j] != -1 and self.candy_matches(board[i][j], board[start[0]][start[1]]):
-                open_list.append((i, j))
-                i += dirs[0]
-                j += dirs[1]
+            for d in dirs:
+                i = start[0] + d[0]
+                j = start[1] + d[1]
+                while 0 <= i < self.board_size and 0 <= j < self.board_size and board[i][j] != -1 \
+                        and self.candy_matches(board[i][j], board[start[0]][start[1]]):
+                    open_list.append((i, j))
+                    i += d[0]
+                    j += d[1]
 
             if len(open_list) >= 3:
+                # if (start[0] == 2 and start[1] == 5):
+                #    print("2,5-compute_explosions_lines")
+                #    print("open_list:", open_list)
                 for element in open_list:
                     if element not in to_explode:
                         if board[element[0]][element[1]] in self.striped_candies:
@@ -108,25 +116,30 @@ class Solver:
             score = 500000
             to_explode = [start, end]
         else:
-            if board[start[0]][start[1]] == self.chocolate:  # chocolate
+            if board[start[0]][start[1]] == self.chocolate:
                 to_explode = self.compute_explosions_chocolate(
                     board, board[end[0]][end[1]])
                 chocolate_multiplier = 100
             else:
-                to_explode = self.compute_explosions_lines(board, start)
 
+                to_explode = self.compute_explosions_lines(board, start)
+                # if end[0] == 2 and end[1] == 4 and len(to_explode) > 0:
+                #    print("2,4-compute_explosions_lines")
+                #    print("start: ", start)
             to_explode.sort(key=(lambda x: x[0]))
             score = self.compute_score(
                 board, to_explode) * chocolate_multiplier
+
+        # if end[0] == 2 and end[1] == 4 and len(to_explode) > 0:
+        #    print("2,4-compute_explosions")
+        #    print("score:", score)
+        #    print("to_explode:", to_explode)
+        #    utils.print_board(board)
 
         # striped candy
         if len(to_explode) == 4 and board[start[0]][start[1]] != self.chocolate:
             board[start[0]][start[1]] += 1
             to_explode.remove(start)
-
-        # if len(to_explode) > 0:
-        #    print '\n\nStarting board:'
-        #    dbg.print_board(board)
 
         # Slide the other candies down after explosions take place
         for coord in to_explode:
@@ -138,10 +151,6 @@ class Solver:
                 board[i][j], board[i-1][j] = board[i-1][j], board[i][j]
                 i -= 1
             board[i][j] = -1
-
-        # if len(to_explode) > 0:
-           # print '\nResult from {0}, count={1}, score={2}:'.format(start, len(to_explode), score)
-            # dbg.print_board(board)
 
         return score, board
 
@@ -172,16 +181,12 @@ class Solver:
 
         return total_score, new_board
 
-    def check_direction(self, start, dir):
-        end = (start[0]+dir[0], start[1]+dir[1])
+    def check_direction(self, start, end):
         board = deepcopy(self.game_board)
-        if start[0] < 0 or start[0] > self.board_size or end[0] < 0 or end[0] > self.board_size\
-                or start[1] < 0 or start[1] > self.board_size or end[1] < 0 or end[1] > self.board_size:
-            return -1, [], None
-
         # swap
         board[start[0]][start[1]], board[end[0]][end[1]
                                                  ] = board[end[0]][end[1]], board[start[0]][start[1]]
+
         score_start, start_board = self.evaluate_board(start, end, board)
         score_end, end_board = self.evaluate_board(end, start, board)
 
@@ -194,12 +199,25 @@ class Solver:
         self.game_board = board
         max_score = 0
         chosen_move = []
-        for i in range(0, 8):
-            for j in range(0, 8):
-                for d in self.directions:
-                    score, move, b = self.check_direction((i, j), d)
-                    if score >= max_score:
-                        max_score = score
-                        chosen_move = move
+        possible_moves = []
+        for i in reversed(range(1, 9)):
 
+            for j in range(0, 8):
+                r, c = i-1, j
+                for d in self.directions:
+                    nr, nc = r+d[0], c+d[1]
+                    if nr >= 0 and nr <= self.board_size and nc >= 0 and nc <= self.board_size:
+                        score, move, b = self.check_direction((r, c), (nr, nc))
+                        # if r == 2 and c == 4:
+                        # print("2,4")
+                        # print("score:", score)
+                        # print("move:", move)
+                        if score > max_score:
+                            possible_moves.append([score, move])
+                            max_score = score
+                            chosen_move = move
+        print("possible_moves:")
+        for move in possible_moves:
+            print(move[0], move[1])
+            print("\n")
         return max_score, chosen_move

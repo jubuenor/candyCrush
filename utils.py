@@ -13,3 +13,7 @@ def print_board(board):
         for elem in line:
             print(board_dict[elem], end=' ')
         print('\n')
+
+
+def print_candy(candy):
+    print(board_dict[candy])

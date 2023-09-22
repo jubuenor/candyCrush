@@ -41,7 +41,8 @@ def move(move):
 
     # print(start_w, end_w)
 
-    # print(game_board[start[0]][start[1]], game_board[end[0]][end[1]])
+    print(utils.print_candy(game_board[start[0]][start[1]]), utils.print_candy(
+        game_board[end[0]][end[1]]))
 
     pg.moveTo(start_w[0], start_w[1])
     time.sleep(0.05)
@@ -63,7 +64,7 @@ def grab_board():
                 (x*cell_size[0], y*cell_size[1], (x+1)*cell_size[0], (y+1)*cell_size[1]))
             game_board[y][x] = recognizer.predict(cell).item()
 
-    utils.print_board(game_board)
+    # utils.print_board(game_board)
     return img
 
 
