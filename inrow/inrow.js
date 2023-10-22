@@ -10,18 +10,48 @@ class Agent{
         this.board = new Board();
         this.k = k;
         this.moves = 0;
-        console.log("init")
+        this.node_count = 0;
+        this.transposition_table = Array(this.size*this.size+1).fill({key:0, value:0});
+        this.min_score=-(this.size*this.size)/2 + 3
+        this.max_score=(this.size*this.size+1)/2 - 3
+    }
+
+    getIndex(key){
+        return (this.node_count+key)%(this.transposition_table.length);
+    }
+
+    setTranspositionTable(pos,score){
+        if(pos >= this.transposition_table.length) return;
+        let i = this.getIndex(pos);
+        this.transposition_table[i] = {key:pos, value:score}; 
+    }
+
+    getTranspositionTable(pos){
+        //console.log(pos)
+        if(pos >= this.transposition_table.length) return 0; 
+        let i = this.getIndex(pos);
+        if(this.transposition_table[i].key == pos)
+            return this.transposition_table[i].value;
+        else
+            return 0;
     }
 
     negamax(board, pos, alpha, beta , k){
+
+        if (alpha>=beta) return alpha;
+
+        this.node_count++;
         if(this.board.check(board,pos)&&this.board.winner(board, pos) == this.color)
             return (this.size*this.size+1 - this.moves)/2;
 
         let max = (this.size*this.size - 1 - this.moves)/2;
+       
+        let val= this.getTranspositionTable(pos);
+        if(val!=0) max = val + this.min_score-1;
+
         if (beta>max){
             beta=max;
-            if (alpha>=beta) return beta;
-            
+            if (alpha>=beta) return beta; 
         }
 
         for(let x = 0; x<this.size; x++){
@@ -29,47 +59,84 @@ class Agent{
                 let boardClone = this.board.clone(board);
                 this.board.move(boardClone,x,this.color);
                 let score = -this.negamax(boardClone, x , -beta, -alpha, k);
-
                 if (score>=beta) return beta;
                 if (score>alpha) alpha=score;
             }
         }
+        this.setTranspositionTable(pos, alpha - this.min_score + 1);
         return alpha;
-        
-
     }
 
     getBestMove(scores){
         let max = -this.size*this.size/2;
-        let index = 0;
+        let min = this.size*this.size/2;
+        let indexMax = 0;
+        let indexMin = 0;
         for(let i = 0; i<scores.length; i++){
             if(scores[i]>max){
                 max = scores[i];
-                index = i;
+                indexMax = i;
+            }
+            if(scores[i]<min){
+                min = scores[i];
+                indexMin = i;
             }
         }
-        return index;
+        if(max<0)
+            return indexMin;
+        else
+            return indexMax;
     }
 
     // Must return an integer representing the column to put a piece
     //                           column
     //                             | 
+
+    reset(){
+        this.transposition_table = Array(this.size*this.size).fill({key:0, value:0});
+        this.node_count=0;
+    }
+
+    solve(board,x){
+        let min = -this.size*this.size/2;
+        let max = this.size*this.size/2;
+        while(min<max){
+            let med = min + Math.floor((max-min)/2);
+            if(med<=0&&min/2<med)med = min/2;
+            else if(med>=0&&max/2>med)med = max/2;
+            let r = this.negamax(board,x,med,med+1,this.k);
+            if (r<=med) max=r;
+            else min=r;
+        }
+        return min
+    }
+
     compute( board, time ){ 
-        //console.log(board)
+
+        this.reset();
+
+
         this.moves = this.board.clone(board).filter(x => x != ' ').length; 
 
         let possibleMoves = this.board.valid_moves(board);
+        possibleMoves.sort((a,b) => Math.abs(this.size/2 - a) - Math.abs(this.size/2 - b));
         let scores = [];
 
         for(let x = 0; x<possibleMoves.length; x++){
             let boardClone = this.board.clone(board);
-            //this.board.move(boardClone,possibleMoves[x],this.color);
-            scores.push(this.negamax(boardClone, possibleMoves[x], -this.size*this.size/2, this.size*this.size/2, this.k));
+            scores.push(this.solve(boardClone,possibleMoves[x]));
         }
 
-        for(let i = 0; i<scores.length; i++){
-            console.log(possibleMoves[i],scores[i]);
-        }
+        //console.log(this.transposition_table)
+
+        //for(let i = 0; i<scores.length; i++){
+        //    console.log(possibleMoves[i],scores[i]);
+        //}
+
+        //let move = possibleMoves[this.getBestMove(scores)];
+        //console.log(move)
+
+        console.log(this.node_count);
          
         return possibleMoves[this.getBestMove(scores)]; 
     
