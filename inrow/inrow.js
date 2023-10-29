@@ -46,7 +46,7 @@ class Agent{
 
         this.node_count++;
 
-        if(this.node_count>=10000) return alpha;
+        if(this.node_count>=(this.length > 10 ? 1000:10000)) return alpha;
 
         let nextMoves = this.getPossibleNonLosingMoves(board);
 
