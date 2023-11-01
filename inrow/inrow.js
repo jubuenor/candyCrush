@@ -14,6 +14,8 @@ class Agent{
         this.transposition_table = Array(this.size*this.size+1).fill({key:0, value:0});
         this.min_score=-(this.size*this.size)/2 + 3
         this.max_score=(this.size*this.size+1)/2 - 3 
+        this.limit = 0;
+        
     }
 
     getIndex(key){
@@ -46,7 +48,7 @@ class Agent{
 
         this.node_count++;
 
-        if(this.node_count>=(this.length > 10 ? 1000:10000)) return alpha;
+        if(this.node_count>=this.limit) return alpha;
 
         let nextMoves = this.getPossibleNonLosingMoves(board);
 
@@ -150,13 +152,26 @@ class Agent{
     }
 
     compute( board, time ){ 
+        if(time>10000) this.limit = time*10;
+        else if(time>5000) this.limit = time*5;
+        else this.limit = time*2;
+
+        if(this.size<=10) this.limit = this.limit;
+        else if(this.size<=15) this.limit = this.limit/(this.size-10);
+        else if(this.size<=25) this.limit = this.limit/(this.size-5);
+        else this.limit = this.limit/(this.size*this.time);
+
+
+        this.limit = Math.floor(( this.limit+100)/(this.k-3))+1;
+        if(isNaN(this.limit)) this.limit = 100;
+        //console.log(this.limit)
 
         let boardClone = this.board.clone(board);
         this.reset();
 
         this.moves = board.reduce((a,b)=>a.concat(b)).filter(x=>x!=' ').length; 
 
-        console.log(this.moves)
+        //console.log(this.moves)
         let possibleMoves = this.board.valid_moves(boardClone);
         
         possibleMoves.sort((a,b) => Math.abs(this.size/2 - a) - Math.abs(this.size/2 - b));
